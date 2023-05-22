@@ -11,9 +11,13 @@ import (
 	"time"
 )
 
+// HandleFunc 视图函数签名
+type HandleFunc func(w http.ResponseWriter, r *http.Request)
+
 // 一个server需要什么功能
 // 1.启动
 // 2.关闭
+// 3.注册路由的方法
 
 // 为什么要抽象这个server呢?
 // 有些网站走http协议，有些网站走https协议
@@ -25,6 +29,9 @@ type server interface {
 	Start(addr string) error
 	// 关闭服务
 	Stop() error
+	// 注册路由的方法
+	// 非常核心的方法
+	addRouter(method string, pattern string, handleFunc HandleFunc)
 }
 
 // 选项模式
@@ -34,24 +41,36 @@ type HTTPOption func(h *HTTPServer)
 type HTTPServer struct {
 	srv  *http.Server
 	stop func() error
+	// routers 临时存放的路由的位置
+	routers map[string]HandleFunc
 }
+
+// 路由的设计
+// "GET-login":HandleFunc1,
+// "POST-login":HandleFunc2,
 
 func WithHTTPServerStop(fn func() error) HTTPOption {
 	return func(h *HTTPServer) {
 		if fn == nil {
 			fn = func() error {
 				fmt.Println("111111111")
+				// os.Signal类型的channel
 				quit := make(chan os.Signal)
+				// 如果匹配到中断信息，会将信号传到channel里面
+				// 如果没有匹配到，channel会一直阻塞
 				signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 				<-quit
 				log.Println("shutdown Server....")
 
+				// 创建一个超时的上下文，在这里等五秒钟
+				// 等待任务执行完毕
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
 				if err := h.srv.Shutdown(ctx); err != nil {
 					log.Fatal("server Shutdown", err)
 				}
+				// 关闭之后执行的操作
 				select {
 				case <-ctx.Done():
 					log.Println("timeout of 5 seconds...")
@@ -72,6 +91,7 @@ func NewHTTP(opts ...HTTPOption) *HTTPServer {
 }
 
 // 接收请求转发请求
+// ServeHTTP方法向前对接前端请求，向后对接咱们的框架
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
@@ -87,4 +107,13 @@ func (h *HTTPServer) Start(addr string) error {
 // 这里服务的关闭需要优雅的关闭
 func (h *HTTPServer) Stop() error {
 	return h.stop()
+}
+
+// 实现路由注册的方法
+// 注册路由的时机，项目启动的时候，启动之后就不能注册了
+// 问题，注册路由，注册到哪里
+func (h *HTTPServer) addRouter(method string, pattern string, handleFunc HandleFunc) {
+	// 这里构建唯一的key
+	key := fmt.Sprintf("%s-%s", method, pattern)
+	h.routers[key] = handleFunc
 }
