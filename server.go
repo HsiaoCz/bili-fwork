@@ -31,6 +31,7 @@ type server interface {
 	Stop() error
 	// 注册路由的方法
 	// 非常核心的方法
+	// 这个方法不能被外界使用
 	addRouter(method string, pattern string, handleFunc HandleFunc)
 }
 
@@ -83,7 +84,9 @@ func WithHTTPServerStop(fn func() error) HTTPOption {
 }
 
 func NewHTTP(opts ...HTTPOption) *HTTPServer {
-	h := &HTTPServer{}
+	h := &HTTPServer{
+		routers: map[string]HandleFunc{},
+	}
 	for _, opt := range opts {
 		opt(h)
 	}
@@ -93,7 +96,36 @@ func NewHTTP(opts ...HTTPOption) *HTTPServer {
 // 接收请求转发请求
 // ServeHTTP方法向前对接前端请求，向后对接咱们的框架
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// 1.匹配路由
+	key := fmt.Sprintf("%s-%s", r.Method, r.URL.Path)
+	handler, ok := h.routers[key]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("404 NOT FOUND"))
+		return
+	}
+	// 2.转发请求
+	handler(w, r)
+}
 
+// GET方法
+func (h *HTTPServer) GET(pattern string, handleFunc HandleFunc) {
+	h.addRouter(http.MethodGet, pattern, handleFunc)
+}
+
+// POST请求
+func (h *HTTPServer) POST(pattern string, handleFunc HandleFunc) {
+	h.addRouter(http.MethodPost, pattern, handleFunc)
+}
+
+// PUT请求
+func (h *HTTPServer) PUT(pattern string, handleFunc HandleFunc) {
+	h.addRouter(http.MethodPut, pattern, handleFunc)
+}
+
+// Delete请求
+func (h *HTTPServer) DELETE(pattern string, handleFunc HandleFunc) {
+	h.addRouter(http.MethodDelete, pattern, handleFunc)
 }
 
 func (h *HTTPServer) Start(addr string) error {
@@ -101,6 +133,7 @@ func (h *HTTPServer) Start(addr string) error {
 		Addr:    addr,
 		Handler: h,
 	}
+	log.Println("the server is running on port", addr)
 	return h.srv.ListenAndServe()
 }
 
