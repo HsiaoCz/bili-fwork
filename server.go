@@ -12,7 +12,8 @@ import (
 )
 
 // HandleFunc 视图函数签名
-type HandleFunc func(w http.ResponseWriter, r *http.Request)
+// type HandleFunc func(w http.ResponseWriter, r *http.Request)
+type HandleFunc func(c *Context)
 
 // 一个server需要什么功能
 // 1.启动
@@ -104,8 +105,11 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("404 NOT FOUND"))
 		return
 	}
+	// 2.构造当前请求的上下文
+	c := NewContext(w, r)
+	log.Printf("request %s-%s", c.Method, c.Pattern)
 	// 2.转发请求
-	handler(w, r)
+	handler(c)
 }
 
 // GET方法

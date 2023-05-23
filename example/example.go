@@ -2,7 +2,6 @@ package main
 
 import (
 	bfwork "b-fwork"
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -29,6 +28,7 @@ func main() {
 	}
 }
 
-func Login(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello")
+func Login(c *bfwork.Context) {
+	c.W.WriteHeader(http.StatusOK)
+	c.W.Write([]byte("hello"))
 }
