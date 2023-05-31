@@ -30,8 +30,11 @@ func (r *Router) AddRouter(pattern string, danode string) {
 		if part == "" {
 			panic("pattern不符合格式...")
 		}
-		root.addNode(part)
+		root = root.addNode(part)
 	}
+	// 循环结束后，此时的root是最底层的
+	// 这时候，咱们得统一设置data的值
+	root.data = danode
 }
 
 func (r *Router) GetRouter(pattern string) *node {
@@ -52,7 +55,18 @@ type node struct {
 // 2.查找节点
 
 func (n *node) addNode(part string) *node {
-	return nil
+	// 判断当前节点有没有children属性，就是是不是nil
+	if n.chiledren == nil {
+		n.chiledren = make(map[string]*node)
+	}
+	child, ok := n.chiledren[part]
+	if !ok {
+		child = &node{
+			part: part,
+		}
+		n.chiledren[part] = child
+	}
+	return child
 }
 
 func (n *node) getNode(part string) *node {
