@@ -20,10 +20,10 @@ func TestRouter_AddRouter(t *testing.T) {
 			wantRouter: &Router{map[string]*node{
 				"/": {
 					part: "/",
-					chiledren: map[string]*node{
+					children: map[string]*node{
 						"user": {
 							part: "user",
-							chiledren: map[string]*node{
+							children: map[string]*node{
 								"login": {
 									part: "login",
 									data: "hello",
@@ -78,7 +78,7 @@ func TestRouter_GetRouter(t *testing.T) {
 	for _, tc := range testCase {
 		t.Run(tc.name, func(t *testing.T) {
 			n, err := router.GetRouter(tc.findparttern)
-			assert.Equal(t, tc.wantdata, err)
+			assert.Equal(t, tc.wanterr, err)
 			if err != nil {
 				return
 			}

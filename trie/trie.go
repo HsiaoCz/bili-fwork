@@ -65,7 +65,7 @@ type node struct {
 	// part 当前节点的唯一标识
 	part string
 	// children 维护子节点的结构
-	chiledren map[string]*node
+	children map[string]*node
 	// data 当前节点需要保存的数据
 	data string
 }
@@ -76,26 +76,26 @@ type node struct {
 
 func (n *node) addNode(part string) *node {
 	// 判断当前节点有没有children属性，就是是不是nil
-	if n.chiledren == nil {
-		n.chiledren = make(map[string]*node)
+	if n.children == nil {
+		n.children = make(map[string]*node)
 	}
-	child, ok := n.chiledren[part]
+	child, ok := n.children[part]
 	if !ok {
 		child = &node{
 			part: part,
 		}
-		n.chiledren[part] = child
+		n.children[part] = child
 	}
 	return child
 }
 
 func (n *node) getNode(part string) *node {
 	// n的children属性都不存在
-	if n.chiledren == nil {
+	if n.children == nil {
 		return nil
 	}
 	// 正常思路
-	child, ok := n.chiledren[part]
+	child, ok := n.children[part]
 	if !ok {
 		return nil
 	}
