@@ -1,6 +1,9 @@
 package trie
 
-import "strings"
+import (
+	"errors"
+	"strings"
+)
 
 // Router维护一个根节点
 type Router struct {
@@ -37,8 +40,25 @@ func (r *Router) AddRouter(pattern string, danode string) {
 	root.data = danode
 }
 
-func (r *Router) GetRouter(pattern string) *node {
-	return nil
+func (r *Router) GetRouter(pattern string) (*node, error) {
+	root, ok := r.root["/"]
+	// 创建根路由
+	if !ok {
+		return nil, errors.New("根节点不存在")
+	}
+	// 切割pattern
+	// ["user","login"]
+	parts := strings.Split(strings.Trim(pattern, "/"), "/")
+	for _, part := range parts {
+		if part == "" {
+			return nil, errors.New("pattern格式不对")
+		}
+		root = root.getNode(part)
+		if root == nil {
+			return nil, errors.New("pattern 不存在")
+		}
+	}
+	return root, nil
 }
 
 type node struct {
@@ -70,5 +90,14 @@ func (n *node) addNode(part string) *node {
 }
 
 func (n *node) getNode(part string) *node {
-	return nil
+	// n的children属性都不存在
+	if n.chiledren == nil {
+		return nil
+	}
+	// 正常思路
+	child, ok := n.chiledren[part]
+	if !ok {
+		return nil
+	}
+	return child
 }
