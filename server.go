@@ -44,7 +44,9 @@ type HTTPServer struct {
 	srv  *http.Server
 	stop func() error
 	// routers 临时存放的路由的位置
-	routers map[string]HandleFunc
+	// routers map[string]HandleFunc
+	// 第二个版本的
+	*router
 }
 
 // 路由的设计
@@ -86,7 +88,7 @@ func WithHTTPServerStop(fn func() error) HTTPOption {
 
 func NewHTTP(opts ...HTTPOption) *HTTPServer {
 	h := &HTTPServer{
-		routers: map[string]HandleFunc{},
+		router: newRouter(),
 	}
 	for _, opt := range opts {
 		opt(h)
@@ -98,8 +100,7 @@ func NewHTTP(opts ...HTTPOption) *HTTPServer {
 // ServeHTTP方法向前对接前端请求，向后对接咱们的框架
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 1.匹配路由
-	key := fmt.Sprintf("%s-%s", r.Method, r.URL.Path)
-	handler, ok := h.routers[key]
+	n, ok := h.getRouter(r.Method, r.URL.Path)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("404 NOT FOUND"))
@@ -109,7 +110,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := NewContext(w, r)
 	log.Printf("request %s-%s", c.Method, c.Pattern)
 	// 2.转发请求
-	handler(c)
+	n.handleFunc(c)
 }
 
 // GET方法
@@ -149,8 +150,8 @@ func (h *HTTPServer) Stop() error {
 // 实现路由注册的方法
 // 注册路由的时机，项目启动的时候，启动之后就不能注册了
 // 问题，注册路由，注册到哪里
-func (h *HTTPServer) addRouter(method string, pattern string, handleFunc HandleFunc) {
-	// 这里构建唯一的key
-	key := fmt.Sprintf("%s-%s", method, pattern)
-	h.routers[key] = handleFunc
-}
+// func (h *HTTPServer) addRouter(method string, pattern string, handleFunc HandleFunc) {
+// 这里构建唯一的key
+//	key := fmt.Sprintf("%s-%s", method, pattern)
+//	h.routers[key] = handleFunc
+// }

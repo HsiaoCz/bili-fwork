@@ -1,6 +1,9 @@
 package bfwork
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // router路由树
 /**
@@ -16,6 +19,10 @@ type router struct {
 	trees map[string]*node
 }
 
+func newRouter() *router {
+	return &router{trees: map[string]*node{}}
+}
+
 // addRouter 注册路由
 // 注册路由还是有很多东西是需要考虑的
 // 1、什么样的pattern是合法的?
@@ -29,19 +36,17 @@ type router struct {
 // 这里当pattern为空的时候
 // 可以返回error吗？可以返回，但是不好
 // 这里注册要么成功，要么失败，失败直接panic
+// method = GET
+// pattern = /
+// handleFunc = HandleFunc()
+// 意思是什么呢?就是说 / 节点绑定一个视图函数
 
 func (r *router) addRouter(method string, pattern string, handleFunc HandleFunc) {
+	// 打印一下注册的路由
+	fmt.Printf("add router %s - %s\n", method, pattern)
 	if pattern == "" {
 		panic("web:路由不能为空")
 	}
-	// TODO 如果是以根路由怎么办?
-	if !strings.HasPrefix(pattern, "/") {
-		panic("web:路由必须以 / 开头")
-	}
-	if strings.HasSuffix(pattern, "/") {
-		panic("web:路由不能以 / 结尾")
-	}
-
 	// 获取根节点
 	root, ok := r.trees[method]
 	if !ok {
@@ -52,6 +57,19 @@ func (r *router) addRouter(method string, pattern string, handleFunc HandleFunc)
 			part: "/",
 		}
 		r.trees[method] = root
+	}
+	// TODO 如果是以根路由怎么办?
+
+	if pattern == "/" {
+		root.handleFunc = handleFunc
+		return
+	}
+
+	if !strings.HasPrefix(pattern, "/") {
+		panic("web:路由必须以 / 开头")
+	}
+	if strings.HasSuffix(pattern, "/") {
+		panic("web:路由不能以 / 结尾")
 	}
 
 	// 切割pattern
@@ -78,9 +96,13 @@ func (r *router) getRouter(method string, pattern string) (*node, bool) {
 	}
 	// TODO  / 这种路由怎么办？
 	// 获取根节点
+
 	root, ok := r.trees[method]
 	if !ok {
 		return nil, false
+	}
+	if pattern == "/" {
+		return root, true
 	}
 	parts := strings.Split(strings.Trim(pattern, "/"), "/")
 	for _, part := range parts {
