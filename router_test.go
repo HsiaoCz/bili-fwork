@@ -55,3 +55,25 @@ func TestRouterAdd(t *testing.T) {
 		})
 	}
 }
+
+func TestRouterParmAdd(t *testing.T) {
+	testCases := []struct {
+		name    string
+		method  string
+		pattern string
+		wantErr string
+	}{
+		{
+			name:    "test1",
+			method:  "GET",
+			pattern: "/study/:source",
+		},
+	}
+	r := newRouter()
+	var mockHandleFunc HandleFunc = func(c *Context) {}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			r.addRouter(tc.method, tc.pattern, mockHandleFunc)
+		})
+	}
+}

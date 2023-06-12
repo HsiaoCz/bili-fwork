@@ -118,13 +118,34 @@ func (r *router) getRouter(method string, pattern string) (*node, bool) {
 }
 
 type node struct {
-	part     string
+	part string
+	// 这个children 就是静态路由
 	children map[string]*node
 	// handleFunc 这里存的是当前节点上的视图函数
 	handleFunc HandleFunc
+	// 参数路由
+	// 这里产生了一个疑问，为什么这里时一个纯node节点
+	// /study/:source
+	// /study/:programing
+	// /study/golang 这个路由匹配哪个？
+	// 这个根本匹配不了
+	// 一个位置只能有一个动态参数，也就是一个占位符
+	// 问题2：静态路由和动态路由的优先级
+	// 注册的路由 /study/golang
+	// 注册的路由 /study/:course
+	// 请求的地址 /study/golang
+	// 请求的静态路由的优先级要高于动态路由
+	paramChildern *node
 }
 
+// addNode 这个方法是在服务启动前调用
 func (n *node) addNode(part string) *node {
+
+	if strings.HasPrefix(part, ":") && n.paramChildern == nil {
+		n.paramChildern = &node{part: part}
+		return n.paramChildern
+	}
+
 	// 判断当前节点有没有children属性，就是是不是nil
 	if n.children == nil {
 		n.children = make(map[string]*node)
@@ -144,10 +165,33 @@ func (n *node) getNode(part string) *node {
 	if n.children == nil {
 		return nil
 	}
-	// 正常思路
+	// 正常思路：先到静态路由中找
 	child, ok := n.children[part]
 	if !ok {
+		// 到了这里说明没找到
+		// 没找到，说明没有匹配到静态路由
+		// 如果动态路由上有值 则返回动态路由
+		if n.paramChildern != nil {
+			return n.paramChildern
+		}
 		return nil
 	}
 	return child
 }
+
+// 路由分为动态路由和静态路由
+// 静态路由：
+// /study/golang
+// /user/login
+// /register
+
+// 动态路由
+// 1.参数路由
+// /study/:course
+// 这是注册的路由，匹配的时候可以匹配到/study/golang /study/python
+// 但是类似这种 /study/golang/action 这种路由就匹配不到
+// 2.通配符路由 贪婪匹配的
+// /static/*filepath  注册时注册这种路由
+// 匹配的时候，匹配到/static/css/style.css
+// /static/js/index.js
+// 3.正则路由
