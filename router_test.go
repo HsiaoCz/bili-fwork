@@ -1,6 +1,7 @@
 package bfwork
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,21 +59,34 @@ func TestRouterAdd(t *testing.T) {
 
 func TestRouterParmAdd(t *testing.T) {
 	testCases := []struct {
-		name    string
-		method  string
-		pattern string
-		wantErr string
+		name     string
+		method   string
+		pattern  string
+		wantBool bool
 	}{
 		{
-			name:    "test1",
-			method:  "GET",
-			pattern: "/study/:source",
+			name:     "test1",
+			method:   "GET",
+			pattern:  "/study/:source",
+			wantBool: false,
+		},
+		{
+			name:     "test2",
+			method:   "GET",
+			pattern:  "/study/login1",
+			wantBool: false,
 		},
 	}
 	r := newRouter()
 	var mockHandleFunc HandleFunc = func(c *Context) {}
+	r.addRouter("GET", "/study/:course", mockHandleFunc)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			n, _, ok := r.getRouter(tc.method, tc.pattern)
+			assert.Equal(t, tc.wantBool, ok)
+			// 这里的n其实是一个参数路由
+			// 参数路由有一个特点，就是它的part是以:开头
+			assert.True(t, tc.wantBool, strings.HasPrefix(n.part, ":"))
 			r.addRouter(tc.method, tc.pattern, mockHandleFunc)
 		})
 	}

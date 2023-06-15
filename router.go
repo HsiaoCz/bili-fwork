@@ -90,31 +90,36 @@ func (r *router) addRouter(method string, pattern string, handleFunc HandleFunc)
 // pattern 一些简单的可以校验：就是说 /awbuildjs.ssdddd.asdd
 // pattern = /user/login/  这种路由注册时是非法的，但是匹配时是合法的
 // pattern = /user//login  非法的路由
-func (r *router) getRouter(method string, pattern string) (*node, bool) {
+func (r *router) getRouter(method string, pattern string) (*node, map[string]string, bool) {
+	params := make(map[string]string)
 	if pattern == "" {
-		return nil, false
+		return nil, params, false
 	}
 	// TODO  / 这种路由怎么办？
 	// 获取根节点
 
 	root, ok := r.trees[method]
 	if !ok {
-		return nil, false
+		return nil, params, false
 	}
 	if pattern == "/" {
-		return root, true
+		return root, params, true
 	}
 	parts := strings.Split(strings.Trim(pattern, "/"), "/")
 	for _, part := range parts {
 		if part == "" {
-			return nil, false
+			return nil, params, false
 		}
 		root = root.getNode(part)
 		if root == nil {
-			return nil, false
+			return nil, params, false
 		}
+		if strings.HasPrefix(root.part, ":") {
+			params[root.part[1:]] = part
+		}
+		// /stufy/:course/action
 	}
-	return root, true
+	return root, params, root.handleFunc != nil
 }
 
 type node struct {

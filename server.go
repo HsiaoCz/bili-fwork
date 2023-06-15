@@ -100,7 +100,7 @@ func NewHTTP(opts ...HTTPOption) *HTTPServer {
 // ServeHTTP方法向前对接前端请求，向后对接咱们的框架
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 1.匹配路由
-	n, ok := h.getRouter(r.Method, r.URL.Path)
+	n, params, ok := h.getRouter(r.Method, r.URL.Path)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("404 NOT FOUND"))
@@ -108,6 +108,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	// 2.构造当前请求的上下文
 	c := NewContext(w, r)
+	c.params = params
 	log.Printf("request %s-%s", c.Method, c.Pattern)
 	// 2.转发请求
 	n.handleFunc(c)
